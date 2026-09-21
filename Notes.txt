@@ -17,3 +17,6 @@ We standardize this process / shapes of data using something called "models"
 
 Basically we create a file called models.py:
 which defines the data model for each type of request. 
+
+Next we introduce repository.py that handles reading / writing data on the disk. The server just uses the abstraction it provides. 
+

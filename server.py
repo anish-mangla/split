@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
+
 from models import CreateGroupRequest, AddMemberRequest
-import csv
+import repository
 
 
 app = FastAPI()
@@ -13,47 +14,27 @@ app = FastAPI()
 @app.get("/users/{user_id}/groups")
 def get_groups(user_id: int):
 
-    # Check whether the user exists
-    user_exists = False
+    user = repository.get_user(user_id)
 
-    with open("users.csv") as file:
-        reader = csv.DictReader(file)
-
-        for row in reader:
-            if int(row["id"]) == user_id:
-                user_exists = True
-                break
-
-    if not user_exists:
+    if user is None:
         raise HTTPException(
             status_code=404,
             detail="User not found"
         )
 
-    # Find which groups this user belongs to
-    memberships = []
+    memberships = repository.get_memberships_for_user(user_id)
+    all_groups = repository.get_groups()
 
-    with open("memberships.csv") as file:
-        reader = csv.DictReader(file)
-
-        for row in reader:
-            if int(row["user_id"]) == user_id:
-                memberships.append(row)
-
-    # Get information about those groups
     groups = []
 
-    with open("groups.csv") as file:
-        reader = csv.DictReader(file)
-
-        for row in reader:
-            for membership in memberships:
-                if int(row["id"]) == int(membership["group_id"]):
-                    groups.append({
-                        "id": int(row["id"]),
-                        "name": row["name"],
-                        "balance": float(membership["balance"])
-                    })
+    for membership in memberships:
+        for group in all_groups:
+            if int(group["id"]) == int(membership["group_id"]):
+                groups.append({
+                    "id": int(group["id"]),
+                    "name": group["name"],
+                    "balance": float(membership["balance"])
+                })
 
     return groups
 
@@ -65,20 +46,18 @@ def get_groups(user_id: int):
 @app.get("/groups/{group_id}")
 def get_group(group_id: int):
 
-    with open("groups.csv") as file:
-        reader = csv.DictReader(file)
+    group = repository.get_group(group_id)
 
-        for row in reader:
-            if int(row["id"]) == group_id:
-                return {
-                    "id": int(row["id"]),
-                    "name": row["name"]
-                }
+    if group is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Group not found"
+        )
 
-    raise HTTPException(
-        status_code=404,
-        detail="Group not found"
-    )
+    return {
+        "id": int(group["id"]),
+        "name": group["name"]
+    }
 
 
 # --------------------------------------------------
@@ -90,33 +69,13 @@ def create_group(group: CreateGroupRequest):
 
     name = group.name
 
-    # Validate business rule
     if name.strip() == "":
         raise HTTPException(
             status_code=400,
             detail="Group name cannot be empty"
         )
 
-    # Find an ID for the new group
-    largest_id = 0
-
-    with open("groups.csv") as file:
-        reader = csv.DictReader(file)
-
-        for row in reader:
-            largest_id = max(largest_id, int(row["id"]))
-
-    new_id = largest_id + 1
-
-    # Save group
-    with open("groups.csv", "a", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow([new_id, name])
-
-    return {
-        "id": new_id,
-        "name": name
-    }
+    return repository.create_group(name)
 
 
 # --------------------------------------------------
@@ -128,61 +87,26 @@ def add_member(group_id: int, member: AddMemberRequest):
 
     user_id = member.user_id
 
-    # Check group exists
-    group_exists = False
+    group = repository.get_group(group_id)
 
-    with open("groups.csv") as file:
-        reader = csv.DictReader(file)
-
-        for row in reader:
-            if int(row["id"]) == group_id:
-                group_exists = True
-                break
-
-    if not group_exists:
+    if group is None:
         raise HTTPException(
             status_code=404,
             detail="Group not found"
         )
 
-    # Check user exists
-    user_exists = False
+    user = repository.get_user(user_id)
 
-    with open("users.csv") as file:
-        reader = csv.DictReader(file)
-
-        for row in reader:
-            if int(row["id"]) == user_id:
-                user_exists = True
-                break
-
-    if not user_exists:
+    if user is None:
         raise HTTPException(
             status_code=404,
             detail="User not found"
         )
 
-    # Check they're not already a member
-    with open("memberships.csv") as file:
-        reader = csv.DictReader(file)
+    if repository.membership_exists(group_id, user_id):
+        raise HTTPException(
+            status_code=409,
+            detail="User is already a member"
+        )
 
-        for row in reader:
-            if (
-                int(row["group_id"]) == group_id
-                and int(row["user_id"]) == user_id
-            ):
-                raise HTTPException(
-                    status_code=409,
-                    detail="User is already a member"
-                )
-
-    # Add membership
-    with open("memberships.csv", "a", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow([group_id, user_id, 0])
-
-    return {
-        "group_id": group_id,
-        "user_id": user_id,
-        "balance": 0
-    }
+    return repository.add_membership(group_id, user_id)
