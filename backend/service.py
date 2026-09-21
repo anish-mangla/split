@@ -1,4 +1,4 @@
-import repository
+from backend import repository
 
 
 def get_groups_for_user(user_id: int):

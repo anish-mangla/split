@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 
-import service
-from models import CreateGroupRequest, AddMemberRequest
-from errors import (
+from backend import service
+from backend.models import CreateGroupRequest, AddMemberRequest
+from backend.errors import (
     UserNotFoundError,
     GroupNotFoundError,
     AlreadyMemberError,

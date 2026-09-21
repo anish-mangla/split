@@ -42,3 +42,4 @@ app.include_router(users_router)
 app.include_router(groups_router)
 app.include_router(expenses_router)
 
+The init file in the backend folder simply tells python that backed is a package. 
