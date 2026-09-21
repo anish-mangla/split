@@ -87,3 +87,13 @@ def add_membership(group_id: int, user_id: int):
         "user_id": user_id,
         "balance": 0
     }
+
+def get_user_by_email(email: str):
+    with open("users.csv") as file:
+        reader = csv.DictReader(file)
+
+        for row in reader:
+            if row["email"] == email:
+                return row
+
+    return None

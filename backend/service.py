@@ -4,8 +4,11 @@ from backend.errors import (
     GroupNotFoundError,
     AlreadyMemberError,
     InvalidGroupNameError,
+    InvalidCredentialsError,
 )
+import secrets
 
+sessions = {}
 
 def get_groups_for_user(user_id):
     user = repository.get_user_by_id(user_id)
@@ -47,3 +50,18 @@ def add_member(group_id, user_id):
         raise AlreadyMemberError()
 
     return repository.add_member(group_id, user_id)
+
+def login(email: str, password: str):
+    user = repository.get_user_by_email(email)
+
+    if user is None:
+        raise InvalidCredentialsError()
+
+    if user["password"] != password:
+        raise InvalidCredentialsError()
+
+    token = secrets.token_hex(32)
+
+    sessions[token] = int(user["id"])
+
+    return token

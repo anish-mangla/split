@@ -16,3 +16,7 @@ class AlreadyMemberError(Exception):
 class InvalidGroupNameError(Exception):
     def __init__(self):
         super().__init__("Group name cannot be empty")
+
+class InvalidCredentialsError(Exception):
+    def __init__(self):
+        super().__init__("Invalid email or password")

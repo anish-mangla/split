@@ -1,17 +1,39 @@
 from fastapi import APIRouter, HTTPException
 
 from backend import service
-from backend.models import CreateGroupRequest, AddMemberRequest
+from backend.models import (
+    CreateGroupRequest,
+    AddMemberRequest,
+    LoginRequest
+)
 from backend.errors import (
     UserNotFoundError,
     GroupNotFoundError,
     AlreadyMemberError,
     InvalidGroupNameError,
+    InvalidCredentialsError,
 )
 
 
 router = APIRouter()
 
+@router.post("/login")
+def login(login_request: LoginRequest):
+    try:
+        token = service.login(
+            login_request.email,
+            login_request.password
+        )
+
+        return {
+            "token": token
+        }
+
+    except InvalidCredentialsError as error:
+        raise HTTPException(
+            status_code=401,
+            detail=str(error)
+        )
 
 @router.get("/users/{user_id}/groups")
 def get_groups(user_id: int):
