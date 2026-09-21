@@ -1,53 +1,49 @@
 from backend import repository
+from backend.errors import (
+    UserNotFoundError,
+    GroupNotFoundError,
+    AlreadyMemberError,
+    InvalidGroupNameError,
+)
 
 
-def get_groups_for_user(user_id: int):
-    user = repository.get_user(user_id)
+def get_groups_for_user(user_id):
+    user = repository.get_user_by_id(user_id)
 
     if user is None:
-        return None
+        raise UserNotFoundError()
 
-    memberships = repository.get_memberships_for_user(user_id)
-    all_groups = repository.get_groups()
-
-    groups = []
-
-    for membership in memberships:
-        for group in all_groups:
-            if int(group["id"]) == int(membership["group_id"]):
-                groups.append({
-                    "id": int(group["id"]),
-                    "name": group["name"],
-                    "balance": float(membership["balance"])
-                })
-
-    return groups
+    return repository.get_groups_for_user(user_id)
 
 
-def get_group(group_id: int):
-    return repository.get_group(group_id)
+def get_group(group_id):
+    group = repository.get_group_by_id(group_id)
+
+    if group is None:
+        raise GroupNotFoundError()
+
+    return group
 
 
-def create_group(name: str):
-    if name.strip() == "":
-        return None
+def create_group(name):
+    if not name or not name.strip():
+        raise InvalidGroupNameError()
 
     return repository.create_group(name)
 
 
-def add_member(group_id: int, user_id: int):
-
-    group = repository.get_group(group_id)
+def add_member(group_id, user_id):
+    group = repository.get_group_by_id(group_id)
 
     if group is None:
-        return "GROUP_NOT_FOUND"
+        raise GroupNotFoundError()
 
-    user = repository.get_user(user_id)
+    user = repository.get_user_by_id(user_id)
 
     if user is None:
-        return "USER_NOT_FOUND"
+        raise UserNotFoundError()
 
-    if repository.membership_exists(group_id, user_id):
-        return "ALREADY_MEMBER"
+    if repository.is_user_in_group(user_id, group_id):
+        raise AlreadyMemberError()
 
-    return repository.add_membership(group_id, user_id)
+    return repository.add_member(group_id, user_id)
