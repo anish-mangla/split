@@ -1,0 +1,19 @@
+Let's introduce models. So look at:
+@app.post("/groups")
+def create_group(group: dict):
+    name = group.get("name")
+
+    if name is None or name.strip() == "":
+        raise HTTPException(
+            status_code=400,
+            detail="Group name cannot be empty"
+        )
+
+Here for the incoming request (of create group) we expect it to contain the group name of the group to create and we are checking if it does. 
+
+Similarly for the add member to a group request we expect it to contain member name. 
+
+We standardize this process / shapes of data using something called "models"
+
+Basically we create a file called models.py:
+which defines the data model for each type of request. 

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from models import CreateGroupRequest, AddMemberRequest
 import csv
 
 
@@ -12,7 +13,7 @@ app = FastAPI()
 @app.get("/users/{user_id}/groups")
 def get_groups(user_id: int):
 
-    # First check whether the user actually exists
+    # Check whether the user exists
     user_exists = False
 
     with open("users.csv") as file:
@@ -39,7 +40,7 @@ def get_groups(user_id: int):
             if int(row["user_id"]) == user_id:
                 memberships.append(row)
 
-    # Get the actual information about those groups
+    # Get information about those groups
     groups = []
 
     with open("groups.csv") as file:
@@ -47,7 +48,6 @@ def get_groups(user_id: int):
 
         for row in reader:
             for membership in memberships:
-
                 if int(row["id"]) == int(membership["group_id"]):
                     groups.append({
                         "id": int(row["id"]),
@@ -69,7 +69,6 @@ def get_group(group_id: int):
         reader = csv.DictReader(file)
 
         for row in reader:
-
             if int(row["id"]) == group_id:
                 return {
                     "id": int(row["id"]),
@@ -87,12 +86,12 @@ def get_group(group_id: int):
 # --------------------------------------------------
 
 @app.post("/groups", status_code=201)
-def create_group(group: dict):
+def create_group(group: CreateGroupRequest):
 
-    name = group.get("name")
+    name = group.name
 
-    # Validate input
-    if name is None or name.strip() == "":
+    # Validate business rule
+    if name.strip() == "":
         raise HTTPException(
             status_code=400,
             detail="Group name cannot be empty"
@@ -109,7 +108,7 @@ def create_group(group: dict):
 
     new_id = largest_id + 1
 
-    # Store the new group
+    # Save group
     with open("groups.csv", "a", newline="") as file:
         writer = csv.writer(file)
         writer.writerow([new_id, name])
@@ -125,17 +124,11 @@ def create_group(group: dict):
 # --------------------------------------------------
 
 @app.post("/groups/{group_id}/members", status_code=201)
-def add_member(group_id: int, member: dict):
+def add_member(group_id: int, member: AddMemberRequest):
 
-    user_id = member.get("user_id")
+    user_id = member.user_id
 
-    if user_id is None:
-        raise HTTPException(
-            status_code=400,
-            detail="user_id is required"
-        )
-
-    # Check that the group exists
+    # Check group exists
     group_exists = False
 
     with open("groups.csv") as file:
@@ -152,7 +145,7 @@ def add_member(group_id: int, member: dict):
             detail="Group not found"
         )
 
-    # Check that the user exists
+    # Check user exists
     user_exists = False
 
     with open("users.csv") as file:
@@ -169,7 +162,7 @@ def add_member(group_id: int, member: dict):
             detail="User not found"
         )
 
-    # Make sure they're not already in the group
+    # Check they're not already a member
     with open("memberships.csv") as file:
         reader = csv.DictReader(file)
 
