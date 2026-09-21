@@ -1,4 +1,4 @@
-id,name
-17,Anish
-22,Arnav
-30,Bob
+id,name,email,password
+17,Anish,anish@example.com,password123
+22,Arnav,arnav@example.com,hello123
+30,Bob,bob@example.com,bob123
