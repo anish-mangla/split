@@ -20,3 +20,25 @@ which defines the data model for each type of request.
 
 Next we introduce repository.py that handles reading / writing data on the disk. The server just uses the abstraction it provides. 
 
+We move the routes from server to it's own file because if we have too many routes then it's easier to manage that. like suppose we have 
+10 auth endpoints
+15 user endpoints
+20 group endpoints
+25 expense endpoints
+10 settlement endpoints
+
+then it's easer to have them seperate like
+routes/
+├── auth.py
+├── users.py
+├── groups.py
+├── expenses.py
+└── settlements.py
+and server.py just connects everything like:
+app = FastAPI()
+
+app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(groups_router)
+app.include_router(expenses_router)
+
