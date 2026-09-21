@@ -7,3 +7,7 @@ class CreateGroupRequest(BaseModel):
 
 class AddMemberRequest(BaseModel):
     user_id: int
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
