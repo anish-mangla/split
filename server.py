@@ -1,36 +1,43 @@
-from fastapi import FastAPI, HTTPException
+import repository
 
-from models import CreateGroupRequest, AddMemberRequest
-import service
+from errors import (
+    UserNotFoundError,
+    GroupNotFoundError,
+    AlreadyMemberError,
+    InvalidGroupNameError,
+)
 
 
-app = FastAPI()
+def get_groups_for_user(user_id: int):
 
+    user = repository.get_user(user_id)
 
-@app.get("/users/{user_id}/groups")
-def get_groups(user_id: int):
+    if user is None:
+        raise UserNotFoundError()
 
-    groups = service.get_groups_for_user(user_id)
+    memberships = repository.get_memberships_for_user(user_id)
+    all_groups = repository.get_groups()
 
-    if groups is None:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
+    groups = []
+
+    for membership in memberships:
+        for group in all_groups:
+            if int(group["id"]) == int(membership["group_id"]):
+                groups.append({
+                    "id": int(group["id"]),
+                    "name": group["name"],
+                    "balance": float(membership["balance"])
+                })
 
     return groups
 
 
-@app.get("/groups/{group_id}")
 def get_group(group_id: int):
 
-    group = service.get_group(group_id)
+    group = repository.get_group(group_id)
 
     if group is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Group not found"
-        )
+        raise GroupNotFoundError()
 
     return {
         "id": int(group["id"]),
@@ -38,44 +45,27 @@ def get_group(group_id: int):
     }
 
 
-@app.post("/groups", status_code=201)
-def create_group(group: CreateGroupRequest):
+def create_group(name: str):
 
-    new_group = service.create_group(group.name)
+    if name.strip() == "":
+        raise InvalidGroupNameError()
 
-    if new_group is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Group name cannot be empty"
-        )
-
-    return new_group
+    return repository.create_group(name)
 
 
-@app.post("/groups/{group_id}/members", status_code=201)
-def add_member(group_id: int, member: AddMemberRequest):
+def add_member(group_id: int, user_id: int):
 
-    result = service.add_member(
-        group_id,
-        member.user_id
-    )
+    group = repository.get_group(group_id)
 
-    if result == "GROUP_NOT_FOUND":
-        raise HTTPException(
-            status_code=404,
-            detail="Group not found"
-        )
+    if group is None:
+        raise GroupNotFoundError()
 
-    if result == "USER_NOT_FOUND":
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
+    user = repository.get_user(user_id)
 
-    if result == "ALREADY_MEMBER":
-        raise HTTPException(
-            status_code=409,
-            detail="User is already a member"
-        )
+    if user is None:
+        raise UserNotFoundError()
 
-    return result
+    if repository.membership_exists(group_id, user_id):
+        raise AlreadyMemberError()
+
+    return repository.add_membership(group_id, user_id)
